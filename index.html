@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Binary Classification with TensorFlow.js</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            grid-column: span 2;
+        }
+        
+        canvas {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .chart-title {
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+            color: #333;
+            font-size: 1.1em;
+        }
+        
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .control-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .control-section h4 {
+            margin-top: 0;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 10px;
+        }
+        
+        .weight-display {
+            font-family: 'Courier New', monospace;
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .weight-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 5px 0;
+        }
+        
+        .weight-label {
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .weight-value {
+            color: #007bff;
+            font-weight: bold;
+        }
+        
+        .equation-display {
+            background: #e7f3ff;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #0056b3;
+        }
+        
+        .slider-container {
+            margin: 15px 0;
+        }
+        
+        .slider-container label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .slider-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            background: #dee2e6;
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #007bff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .slider-value {
+            background: #007bff;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            min-width: 50px;
+            text-align: center;
+        }
+        
+        .button-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 10px;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .progress-item {
+            text-align: center;
+        }
+        
+        .progress-label {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+        
+        .progress-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                grid-column: span 1;
+            }
+            
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🥚 Nonlinear Binary Classification</h1>
+        <p>Interactive binary classification with TensorFlow.js: Circular "Fried Egg" pattern with neural network decision boundary</p>
+    </div>
+    
+    <div class="container">
+        <div class="chart-container">
+            <canvas id="plotCanvas" width="500" height="400"></canvas>
+            <div class="chart-title">📈 Data Points & Decision Boundary</div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="networkCanvas" width="500" height="400"></canvas>
+            <div class="chart-title">🧠 Neural Network Architecture (2→16→8→1)</div>
+        </div>
+        
+        <div class="controls">
+            <div class="controls-grid">
+                <div class="control-section">
+                    <h4>⚖️ Current Model</h4>
+                    <div class="weight-display">
+                        <div class="weight-row">
+                            <span class="weight-label">Architecture:</span>
+                            <span class="weight-value">2 → 16 → 8 → 1</span>
+                        </div>
+                        <div class="weight-row">
+                            <span class="weight-label">Total Parameters:</span>
+                            <span class="weight-value" id="param-count">169</span>
+                        </div>
+                        <div class="weight-row">
+                            <span class="weight-label">Hidden Layers:</span>
+                            <span class="weight-value">2 (ReLU activation)</span>
+                        </div>
+                        <div class="weight-row">
+                            <span class="weight-label">Output:</span>
+                            <span class="weight-value">Sigmoid</span>
+                        </div>
+                    </div>
+                    <div class="equation-display" id="equation">
+                        Neural Network: f(x₁, x₂) → [0, 1]
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <h4>🎯 Training Progress</h4>
+                    <div class="progress-info">
+                        <div class="progress-item">
+                            <div class="progress-label">Epoch</div>
+                            <div class="progress-value" id="current-epoch">0</div>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-label">Loss</div>
+                            <div class="progress-value" id="current-loss">--</div>
+                        </div>
+                        <div class="progress-item">
+                            <div class="progress-label">Accuracy</div>
+                            <div class="progress-value" id="accuracy">--</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Training Progress Bar -->
+                    <div id="progress-bar-container" style="margin-top: 15px; display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: bold; color: #495057;">Training Progress:</span>
+                            <span id="progress-percentage" style="font-weight: bold; color: #007bff;">0%</span>
+                        </div>
+                        <div style="background: #e9ecef; border-radius: 10px; height: 20px; overflow: hidden;">
+                            <div id="progress-bar" style="background: linear-gradient(90deg, #28a745, #20c997); height: 100%; width: 0%; transition: width 0.3s ease; border-radius: 10px;"></div>
+                        </div>
+                        <div style="margin-top: 5px; font-size: 0.9em; color: #6c757d;">
+                            <span id="progress-status">Preparing to train...</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Loss Function Display -->
+                    <div style="margin-top: 15px;">
+                        <div style="background: #fff8e1; border: 2px solid #ffa000; border-radius: 8px; padding: 12px;">
+                            <strong style="color: #f57c00;">Loss Function:</strong>
+                            <div style="font-family: 'Courier New', monospace; margin-top: 5px; color: #ef6c00;">
+                                Binary Cross-Entropy: -Σ[y·log(ŷ) + (1-y)·log(1-ŷ)]
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <h4>⚙️ Training Settings</h4>
+                    <div class="weight-display">
+                        <div class="weight-row">
+                            <span class="weight-label">Learning Rate:</span>
+                            <span class="weight-value" id="learning-rate-display">0.005</span>
+                        </div>
+                        <div class="weight-row">
+                            <span class="weight-label">Optimizer:</span>
+                            <span class="weight-value">Adam (Adaptive)</span>
+                        </div>
+                        <div class="weight-row">
+                            <span class="weight-label">Max Epochs:</span>
+                            <span class="weight-value">2500</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="button-container">
+                <button id="start-training">🚀 Start Training</button>
+                <button id="reset">🔄 Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let dataPoints = [];
+        let model = null;
+        let canvas, ctx;
+        let networkCanvas, networkCtx;
+        let isTraining = false;
+        let shouldStopTraining = false;
+        let trainingData = null; // Store training data for training session
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Nonlinear Binary Classification App loaded, TensorFlow.js version:", tf.version.tfjs);
+            
+            // Get canvas and context
+            canvas = document.getElementById('plotCanvas');
+            ctx = canvas.getContext('2d');
+            
+            // Get network canvas and context
+            networkCanvas = document.getElementById('networkCanvas');
+            networkCtx = networkCanvas.getContext('2d');
+            
+            // Generate initial data points
+            generateDataPoints();
+            
+            // Draw initial visualizations
+            drawPlot();
+            drawNetwork();
+            
+            // Set up event listeners
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Button event listeners
+            document.getElementById('start-training').addEventListener('click', startTraining);
+            document.getElementById('reset').addEventListener('click', reset);
+        }
+
+        function generateDataPoints() {
+            dataPoints = [];
+            
+            // Generate standardized data (mean=0, std=1) from the start
+            const innerRadius = 0.8;  // Smaller radius for standardized coordinates
+            const ringRadius = 1.5;   // Ring radius for standardized coordinates
+            
+            console.log(`Generating standardized geometric circles: inner radius ${innerRadius}, ring radius ${ringRadius}`);
+            
+            const centerX = 0; // Center at origin for standardized data
+            const centerY = 0;
+            
+            // Generate blue circle (inner circle) - perfect geometric circle with 20 points
+            const bluePoints = 20;
+            for (let i = 0; i < bluePoints; i++) {
+                const angle = (i / bluePoints) * 2 * Math.PI;
+                
+                const x1 = centerX + innerRadius * Math.cos(angle);
+                const x2 = centerY + innerRadius * Math.sin(angle);
+                
+                dataPoints.push({
+                    x1: x1,
+                    x2: x2,
+                    class: 0, // Blue
+                    color: '#3498db'
+                });
+            }
+            
+            // Generate red ring (outer ring) - perfect geometric ring with 24 points
+            const redPoints = 24;
+            
+            for (let i = 0; i < redPoints; i++) {
+                const angle = (i / redPoints) * 2 * Math.PI;
+                
+                const x1 = centerX + ringRadius * Math.cos(angle);
+                const x2 = centerY + ringRadius * Math.sin(angle);
+                
+                dataPoints.push({
+                    x1: x1,
+                    x2: x2,
+                    class: 1, // Red
+                    color: '#e74c3c'
+                });
+            }
+            
+            console.log(`Generated standardized pattern: ${bluePoints} blue points (inner circle), ${redPoints} red points (outer ring)`);
+        }
+
+        function updateWeightDisplay() {
+            // Calculate accuracy
+            calculateAccuracy();
+        }
+
+        async function calculateAccuracy() {
+            if (dataPoints.length === 0 || !model || !trainingData) return;
+            
+            // Use the data directly since it's already standardized
+            const predictions = model.predict(trainingData.xs);
+            const predData = await predictions.data();
+            
+            let correct = 0;
+            
+            dataPoints.forEach((point, i) => {
+                const prediction = predData[i];
+                const predictedClass = prediction >= 0.5 ? 1 : 0;
+                if (predictedClass === point.class) {
+                    correct++;
+                }
+            });
+            
+            const accuracy = (correct / dataPoints.length) * 100;
+            document.getElementById('accuracy').textContent = accuracy.toFixed(1) + '%';
+            
+            predictions.dispose();
+        }
+
+        async function drawPlot() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Set up coordinate system for standardized data (-3 to 3 range)
+            const padding = 50;
+            const plotWidth = canvas.width - 2 * padding;
+            const plotHeight = canvas.height - 2 * padding;
+            
+            const minX = -3;
+            const maxX = 3;
+            const minY = -3;
+            const maxY = 3;
+            const range = maxX - minX;
+            
+            // Draw grid
+            ctx.strokeStyle = '#f0f0f0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            
+            // Vertical grid lines
+            for (let x = -3; x <= 3; x += 1) {
+                const canvasX = padding + ((x - minX) / range) * plotWidth;
+                ctx.moveTo(canvasX, padding);
+                ctx.lineTo(canvasX, canvas.height - padding);
+            }
+            
+            // Horizontal grid lines
+            for (let y = -3; y <= 3; y += 1) {
+                const canvasY = canvas.height - padding - ((y - minY) / range) * plotHeight;
+                ctx.moveTo(padding, canvasY);
+                ctx.lineTo(canvas.width - padding, canvasY);
+            }
+            ctx.stroke();
+            
+            // Draw axes
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            // Y axis (at x=0)
+            const centerX = padding + ((0 - minX) / range) * plotWidth;
+            ctx.moveTo(centerX, padding);
+            ctx.lineTo(centerX, canvas.height - padding);
+            
+            // X axis (at y=0)
+            const centerY = canvas.height - padding - ((0 - minY) / range) * plotHeight;
+            ctx.moveTo(padding, centerY);
+            ctx.lineTo(canvas.width - padding, centerY);
+            ctx.stroke();
+            
+            // Draw decision boundary if model exists
+            if (model) {
+                await drawDecisionBoundary();
+            }
+            
+            // Draw data points
+            dataPoints.forEach(point => {
+                const x = padding + ((point.x1 - minX) / range) * plotWidth;
+                const y = canvas.height - padding - ((point.x2 - minY) / range) * plotHeight;
+                
+                ctx.fillStyle = point.color;
+                ctx.beginPath();
+                ctx.arc(x, y, 6, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // Add white border
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+            
+            // Add labels
+            ctx.fillStyle = '#333';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('x₁', canvas.width - 20, canvas.height - padding + 20);
+            
+            ctx.save();
+            ctx.translate(20, canvas.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('x₂', 0, 0);
+            ctx.restore();
+            
+            // Add class labels
+            ctx.fillStyle = '#3498db';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('Blue Class (0) - Inner Circle', padding + 10, padding + 20);
+            
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillText('Red Class (1) - Outer Ring', padding + 10, padding + 40);
+            
+            // Add decision boundary label
+            ctx.fillStyle = '#9b59b6';
+            ctx.fillText('Neural Network Boundary', padding + 10, padding + 60);
+        }
+
+        function drawNetwork() {
+            // Clear network canvas
+            networkCtx.clearRect(0, 0, networkCanvas.width, networkCanvas.height);
+            
+            // Network layout for simpler 2→16→8→1 architecture
+            const layerPositions = [
+                { x: 80, nodes: 2, labels: ['x₁', 'x₂'], colors: ['#e3f2fd', '#e8f5e8'], borders: ['#1976d2', '#388e3c'] },
+                { x: 200, nodes: 16, labels: Array(16).fill('ReLU'), colors: Array(16).fill('#f3e5f5'), borders: Array(16).fill('#7b1fa2') },
+                { x: 320, nodes: 8, labels: Array(8).fill('ReLU'), colors: Array(8).fill('#fff8e1'), borders: Array(8).fill('#f57c00') },
+                { x: 420, nodes: 1, labels: ['σ'], colors: ['#fce4ec'], borders: ['#c2185b'] }
+            ];
+            
+            const nodeRadius = 12;
+            const centerY = networkCanvas.height / 2;
+            
+            // Draw connections (simplified for readability)
+            networkCtx.strokeStyle = '#ddd';
+            networkCtx.lineWidth = 0.5;
+            
+            for (let layer = 0; layer < layerPositions.length - 1; layer++) {
+                const currentLayer = layerPositions[layer];
+                const nextLayer = layerPositions[layer + 1];
+                
+                // Only draw some connections to avoid visual clutter
+                for (let i = 0; i < Math.min(currentLayer.nodes, 6); i++) {
+                    const currentY = centerY + (i - (Math.min(currentLayer.nodes, 6) - 1) / 2) * 25;
+                    
+                    for (let j = 0; j < Math.min(nextLayer.nodes, 6); j++) {
+                        const nextY = centerY + (j - (Math.min(nextLayer.nodes, 6) - 1) / 2) * 25;
+                        
+                        networkCtx.beginPath();
+                        networkCtx.moveTo(currentLayer.x + nodeRadius, currentY);
+                        networkCtx.lineTo(nextLayer.x - nodeRadius, nextY);
+                        networkCtx.stroke();
+                    }
+                }
+            }
+            
+            // Draw nodes
+            layerPositions.forEach((layer, layerIndex) => {
+                const nodesToDraw = Math.min(layer.nodes, 8); // Show more nodes for smaller network
+                
+                for (let i = 0; i < nodesToDraw; i++) {
+                    const y = centerY + (i - (nodesToDraw - 1) / 2) * 25;
+                    
+                    // Draw ellipsis for hidden nodes
+                    if (layer.nodes > 8 && i === nodesToDraw - 1) {
+                        networkCtx.fillStyle = '#666';
+                        networkCtx.font = 'bold 14px Arial';
+                        networkCtx.textAlign = 'center';
+                        networkCtx.fillText('⋮', layer.x, y);
+                        continue;
+                    }
+                    
+                    const nodeIndex = Math.min(i, layer.colors.length - 1);
+                    
+                    // Draw node
+                    networkCtx.fillStyle = layer.colors[nodeIndex];
+                    networkCtx.strokeStyle = layer.borders[nodeIndex];
+                    networkCtx.lineWidth = 1.5;
+                    networkCtx.beginPath();
+                    networkCtx.arc(layer.x, y, nodeRadius, 0, 2 * Math.PI);
+                    networkCtx.fill();
+                    networkCtx.stroke();
+                    
+                    // Label (smaller for compact display)
+                    networkCtx.fillStyle = 'black';
+                    networkCtx.font = 'bold 9px Arial';
+                    networkCtx.textAlign = 'center';
+                    networkCtx.textBaseline = 'middle';
+                    const label = layer.labels[nodeIndex] || layer.labels[0];
+                    if (label.length <= 4) {
+                        networkCtx.fillText(label, layer.x, y);
+                    }
+                }
+            });
+            
+            // Add layer labels
+            networkCtx.fillStyle = '#333';
+            networkCtx.font = 'bold 11px Arial';
+            networkCtx.textAlign = 'center';
+            networkCtx.textBaseline = 'top';
+            
+            networkCtx.fillText('Input\n(2)', layerPositions[0].x, networkCanvas.height - 35);
+            networkCtx.fillText('Hidden 1\n(16)', layerPositions[1].x, networkCanvas.height - 35);
+            networkCtx.fillText('Hidden 2\n(8)', layerPositions[2].x, networkCanvas.height - 35);
+            networkCtx.fillText('Output\n(1)', layerPositions[3].x, networkCanvas.height - 35);
+        }
+
+        function createModel(initialLearningRate = 0.005) {
+            // Adaptive learning rate that can be updated during training
+            const optimizerType = 'adam';
+            
+            // Simpler but effective model for standardized nonlinear 2D binary classification (2→16→8→1)
+            model = tf.sequential({
+                layers: [
+                    tf.layers.dense({
+                        inputShape: [2], // two inputs: x1, x2
+                        units: 16,
+                        activation: 'relu',
+                        useBias: true,
+                        kernelInitializer: 'heNormal',
+                        biasInitializer: 'zeros'
+                    }),
+                    tf.layers.dropout({ rate: 0.1 }),
+                    tf.layers.dense({
+                        units: 8,
+                        activation: 'relu',
+                        useBias: true,
+                        kernelInitializer: 'heNormal',
+                        biasInitializer: 'zeros'
+                    }),
+                    tf.layers.dense({
+                        units: 1,
+                        activation: 'sigmoid',
+                        useBias: true,
+                        kernelInitializer: 'glorotNormal',
+                        biasInitializer: 'zeros'
+                    })
+                ]
+            });
+
+            // Use Adam optimizer with adaptive learning rate
+            const optimizer = tf.train.adam(initialLearningRate, 0.9, 0.999, 1e-8);
+
+            model.compile({
+                optimizer: optimizer,
+                loss: 'binaryCrossentropy',
+                metrics: ['accuracy']
+            });
+
+            console.log(`Model created with Adam optimizer and initial learning rate: ${initialLearningRate}`);
+            console.log('Architecture: 2 → 16 → 8 → 1');
+            
+            // Update parameter count
+            const totalParams = model.countParams();
+            document.getElementById('param-count').textContent = totalParams.toLocaleString();
+            
+            return model;
+        }
+
+        // Function to update learning rate based on accuracy milestones
+        function updateLearningRate(currentAccuracy, currentLearningRate) {
+            let newLearningRate = currentLearningRate;
+            
+            // Reduce learning rate at accuracy milestones for fine-tuning
+            if (currentAccuracy >= 95.0 && currentLearningRate > 0.001) {
+                newLearningRate = 0.001; // Fine-tuning for high accuracy
+            } else if (currentAccuracy >= 90.0 && currentLearningRate > 0.002) {
+                newLearningRate = 0.002; // Moderate reduction
+            } else if (currentAccuracy >= 85.0 && currentLearningRate > 0.003) {
+                newLearningRate = 0.003; // Small reduction
+            }
+            
+            // Only recompile if learning rate actually changed
+            if (newLearningRate !== currentLearningRate && model) {
+                console.log(`Reducing learning rate from ${currentLearningRate} to ${newLearningRate} (accuracy: ${currentAccuracy.toFixed(1)}%)`);
+                
+                // Create new optimizer with reduced learning rate
+                const newOptimizer = tf.train.adam(newLearningRate, 0.9, 0.999, 1e-8);
+                
+                // Recompile model with new optimizer
+                model.compile({
+                    optimizer: newOptimizer,
+                    loss: 'binaryCrossentropy',
+                    metrics: ['accuracy']
+                });
+                
+                // Update display
+                document.getElementById('learning-rate-display').textContent = newLearningRate.toFixed(4);
+                
+                return newLearningRate;
+            }
+            
+            return currentLearningRate;
+        }
+
+        async function startTraining() {
+            // If already training, do nothing
+            if (isTraining) {
+                return;
+            }
+            
+            console.log("Starting fast background training...");
+            isTraining = true;
+            shouldStopTraining = false;
+            
+            // Update button states
+            document.getElementById('start-training').textContent = '🔄 Training...';
+            document.getElementById('start-training').disabled = true;
+            document.getElementById('reset').disabled = false;
+            
+            // Show progress bar
+            document.getElementById('progress-bar-container').style.display = 'block';
+            document.getElementById('progress-bar').style.width = '0%';
+            document.getElementById('progress-percentage').textContent = '0%';
+            document.getElementById('progress-status').textContent = 'Initializing model...';
+            
+            if (!model) {
+                createModel();
+            }
+
+            // Prepare training data
+            if (!trainingData) {
+                // Data is already standardized from generation
+                const xs = tf.tensor2d(dataPoints.map(p => [p.x1, p.x2]));
+                const ys = tf.tensor2d(dataPoints.map(p => [p.class]));
+                
+                trainingData = {
+                    xs: xs,
+                    ys: ys,
+                    totalEpochs: 2500
+                };
+                
+                console.log("Using pre-standardized data for training");
+            }
+
+            await continueTraining();
+        }
+
+        async function continueTraining() {
+            const epochs = trainingData.totalEpochs;
+            let currentEpoch = 0;
+            let finalLoss = 0;
+            let currentLearningRate = 0.005; // Track current learning rate
+
+            try {
+                await model.fit(trainingData.xs, trainingData.ys, {
+                    epochs: epochs,
+                    batchSize: 16,
+                    shuffle: true,
+                    validationSplit: 0.1,
+                    callbacks: {
+                        onEpochBegin: async (epoch, logs) => {
+                            // Check if training should be stopped
+                            if (shouldStopTraining) {
+                                console.log(`Training stopped early at epoch ${epoch + 1}`);
+                                model.stopTraining = true;
+                                return;
+                            }
+                        },
+                        onEpochEnd: async (epoch, logs) => {
+                            currentEpoch = epoch + 1;
+                            finalLoss = logs.loss;
+                            
+                            // Update progress bar
+                            const progress = (currentEpoch / epochs) * 100;
+                            document.getElementById('progress-bar').style.width = progress + '%';
+                            document.getElementById('progress-percentage').textContent = Math.round(progress) + '%';
+                            document.getElementById('progress-status').textContent = 
+                                `Epoch ${currentEpoch}/${epochs} - Loss: ${logs.loss.toFixed(4)}`;
+                            
+                            // Update epoch and loss display
+                            document.getElementById('current-epoch').textContent = currentEpoch;
+                            document.getElementById('current-loss').textContent = logs.loss.toFixed(6);
+                            
+                            // Calculate and check accuracy for learning rate adaptation (every 5 epochs)
+                            if (currentEpoch % 5 === 0) {
+                                // Calculate current accuracy
+                                const predictions = model.predict(trainingData.xs);
+                                const predData = await predictions.data();
+                                
+                                let correct = 0;
+                                dataPoints.forEach((point, i) => {
+                                    const prediction = predData[i];
+                                    const predictedClass = prediction >= 0.5 ? 1 : 0;
+                                    if (predictedClass === point.class) {
+                                        correct++;
+                                    }
+                                });
+                                
+                                const accuracy = (correct / dataPoints.length) * 100;
+                                document.getElementById('accuracy').textContent = accuracy.toFixed(1) + '%';
+                                
+                                // Adapt learning rate based on accuracy
+                                currentLearningRate = updateLearningRate(accuracy, currentLearningRate);
+                                
+                                predictions.dispose();
+                            }
+                            
+                            // Update decision boundary visualization every 25 epochs for real-time feedback
+                            if (currentEpoch % 25 === 0 || currentEpoch === epochs) {
+                                await drawPlot(); // This includes the decision boundary
+                                drawNetwork();
+                            }
+                            
+                            // Log progress less frequently for performance
+                            if (currentEpoch % 100 === 0 || currentEpoch === epochs) {
+                                console.log(`Epoch ${currentEpoch}: Loss = ${logs.loss.toFixed(6)}, Accuracy = ${logs.acc ? logs.acc.toFixed(3) : 'N/A'}, LR = ${currentLearningRate}`);
+                            }
+                            
+                            // Small delay to allow UI updates without blocking too much
+                            if (currentEpoch % 25 === 0) {
+                                await new Promise(resolve => setTimeout(resolve, 10)); // Slightly longer delay when updating visuals
+                            }
+                        }
+                    }
+                });
+                
+                // Training completed successfully
+                if (!shouldStopTraining) {
+                    document.getElementById('progress-status').textContent = 'Training completed! Updating visualization...';
+                }
+                
+            } catch (error) {
+                console.log("Training interrupted:", error.message);
+                document.getElementById('progress-status').textContent = 'Training stopped.';
+            }
+
+            // Update final visualization
+            updateWeightDisplay();
+            await drawPlot();
+            drawNetwork();
+
+            // Clean up training session
+            isTraining = false;
+            shouldStopTraining = false;
+            
+            // Dispose training data
+            if (trainingData) {
+                trainingData.xs.dispose();
+                trainingData.ys.dispose();
+                trainingData = null;
+            }
+            
+            // Reset UI state
+            document.getElementById('start-training').textContent = '🚀 Start Training';
+            document.getElementById('start-training').disabled = false;
+            document.getElementById('reset').disabled = false;
+            
+            // Hide progress bar after a short delay
+            setTimeout(() => {
+                document.getElementById('progress-bar-container').style.display = 'none';
+            }, 2000);
+            
+            console.log("Training session completed!");
+        }
+
+        function reset() {
+            // Stop any ongoing training first
+            if (isTraining) {
+                shouldStopTraining = true;
+            }
+            
+            // Clean up training state
+            isTraining = false;
+            shouldStopTraining = false;
+            
+            // Reset displays immediately and ensure they stay reset
+            document.getElementById('current-epoch').textContent = '0';
+            document.getElementById('current-loss').textContent = '--';
+            document.getElementById('accuracy').textContent = '--';
+            
+            // Dispose training data if it exists
+            if (trainingData) {
+                trainingData.xs.dispose();
+                trainingData.ys.dispose();
+                trainingData = null;
+            }
+            
+            // Dispose model
+            if (model) {
+                model.dispose();
+                model = null;
+            }
+            
+            // Reset UI button states
+            document.getElementById('start-training').textContent = '🚀 Start Training';
+            document.getElementById('start-training').disabled = false;
+            document.getElementById('reset').disabled = false;
+            
+            // Hide progress bar
+            document.getElementById('progress-bar-container').style.display = 'none';
+            
+            // Reset learning rate display
+            document.getElementById('learning-rate-display').textContent = '0.005';
+            
+            // Regenerate data and redraw
+            generateDataPoints();
+            drawPlot();
+            drawNetwork();
+            
+            // Force reset displays again after a small delay to ensure they stick
+            setTimeout(() => {
+                document.getElementById('current-epoch').textContent = '0';
+                document.getElementById('current-loss').textContent = '--';
+                document.getElementById('accuracy').textContent = '--';
+            }, 100);
+            
+            console.log("Reset completed!");
+        }
+
+        async function drawDecisionBoundary() {
+            const padding = 50;
+            const plotWidth = canvas.width - 2 * padding;
+            const plotHeight = canvas.height - 2 * padding;
+            
+            // Create a fine grid for contour detection in standardized coordinates
+            const resolution = 100;
+            const minCoord = -3;
+            const maxCoord = 3;
+            const step = (maxCoord - minCoord) / resolution;
+            
+            // Create 2D array to store predictions
+            const predGrid = [];
+            const gridPoints = [];
+            
+            // Generate grid points
+            for (let i = 0; i <= resolution; i++) {
+                predGrid[i] = [];
+                for (let j = 0; j <= resolution; j++) {
+                    const x1 = minCoord + i * step;
+                    const x2 = minCoord + j * step;
+                    gridPoints.push([x1, x2]);
+                }
+            }
+            
+            // Get all predictions at once (no need to standardize - data is already standardized)
+            const gridTensor = tf.tensor2d(gridPoints);
+            const predictions = model.predict(gridTensor);
+            const predData = await predictions.data();
+            
+            // Fill the 2D prediction grid
+            let index = 0;
+            for (let i = 0; i <= resolution; i++) {
+                for (let j = 0; j <= resolution; j++) {
+                    predGrid[i][j] = predData[index++];
+                }
+            }
+            
+            // Draw contour line where prediction = 0.5 using marching squares approach
+            ctx.strokeStyle = '#9b59b6';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            // Find contour segments
+            const contourSegments = [];
+            
+            for (let i = 0; i < resolution; i++) {
+                for (let j = 0; j < resolution; j++) {
+                    // Check each grid cell (square)
+                    const topLeft = predGrid[i][j];
+                    const topRight = predGrid[i + 1][j];
+                    const bottomLeft = predGrid[i][j + 1];
+                    const bottomRight = predGrid[i + 1][j + 1];
+                    
+                    // Find where 0.5 contour crosses cell edges
+                    const crossings = [];
+                    
+                    // Check top edge
+                    if ((topLeft - 0.5) * (topRight - 0.5) < 0) {
+                        const t = (0.5 - topLeft) / (topRight - topLeft);
+                        const x1 = minCoord + (i + t) * step;
+                        const x2 = minCoord + j * step;
+                        crossings.push({ x1, x2, edge: 'top' });
+                    }
+                    
+                    // Check right edge
+                    if ((topRight - 0.5) * (bottomRight - 0.5) < 0) {
+                        const t = (0.5 - topRight) / (bottomRight - topRight);
+                        const x1 = minCoord + (i + 1) * step;
+                        const x2 = minCoord + (j + t) * step;
+                        crossings.push({ x1, x2, edge: 'right' });
+                    }
+                    
+                    // Check bottom edge
+                    if ((bottomLeft - 0.5) * (bottomRight - 0.5) < 0) {
+                        const t = (0.5 - bottomLeft) / (bottomRight - bottomLeft);
+                        const x1 = minCoord + (i + t) * step;
+                        const x2 = minCoord + (j + 1) * step;
+                        crossings.push({ x1, x2, edge: 'bottom' });
+                    }
+                    
+                    // Check left edge
+                    if ((topLeft - 0.5) * (bottomLeft - 0.5) < 0) {
+                        const t = (0.5 - topLeft) / (bottomLeft - topLeft);
+                        const x1 = minCoord + i * step;
+                        const x2 = minCoord + (j + t) * step;
+                        crossings.push({ x1, x2, edge: 'left' });
+                    }
+                    
+                    // Connect crossings to form line segments
+                    if (crossings.length >= 2) {
+                        for (let k = 0; k < crossings.length - 1; k += 2) {
+                            contourSegments.push([crossings[k], crossings[k + 1]]);
+                        }
+                    }
+                }
+            }
+            
+            // Draw contour segments
+            const range = maxCoord - minCoord;
+            ctx.beginPath();
+            contourSegments.forEach(segment => {
+                const start = segment[0];
+                const end = segment[1];
+                
+                const startX = padding + ((start.x1 - minCoord) / range) * plotWidth;
+                const startY = canvas.height - padding - ((start.x2 - minCoord) / range) * plotHeight;
+                const endX = padding + ((end.x1 - minCoord) / range) * plotWidth;
+                const endY = canvas.height - padding - ((end.x2 - minCoord) / range) * plotHeight;
+                
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(endX, endY);
+            });
+            ctx.stroke();
+            
+            gridTensor.dispose();
+            predictions.dispose();
+        }
+    </script>
+</body>
+</html>
